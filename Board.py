@@ -27,20 +27,21 @@ class Board(object):
         p.setGravity(0, 0, -9.81)
         p.setRealTimeSimulation(0)
         p.loadURDF("plane.urdf")
-        offset_x, offset_y = 0, 0
 
-        for object_id in self.sample(sample_num):
-
+        object_ids = self.sample(sample_num)
+        # Generate random positions for objects
+        x_index = np.random.choice(np.arange(-sample_num, sample_num), sample_num, replace=False)
+        y_index = np.random.choice(np.arange(-sample_num, sample_num), sample_num, replace=False)
+        for i, object_id in enumerate(object_ids):
             urdf_path, rotation, offset_z = loader.fetch_mobility_object(object_id)
             object = p.loadURDF(
                 urdf_path,
-                basePosition=[offset_x, offset_y, offset_z],
+                basePosition=[x_index[i], y_index[i], offset_z],
                 baseOrientation=p.getQuaternionFromEuler(rotation),
                 useFixedBase=True
             )
 
-            # TODO: consider the layout of the board
-            offset_x = offset_x + 2
+            # TODO: Search for valid positions for new objects (heuristics)
 
         while True:
             p.stepSimulation()
