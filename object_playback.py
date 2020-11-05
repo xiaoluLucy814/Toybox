@@ -4,7 +4,9 @@ import loader
 import time
 import struct
 import os
+import csv
 
+'''
 # function to read and parse a given log file
 def readLogFile(filename, verbose=True):
     f = open(filename, 'rb')
@@ -77,9 +79,18 @@ def log_states(log_file, object_id):
 
     p.stopStateLogging(logId)
     p.disconnect()
+'''
 
 
-# replay states recorded in a given log file
+def readLogFile(log_file):
+    log = []
+    with open(log_file, 'r') as f:
+        for row in csv.reader(f):
+            log.append(row)
+    return log
+
+
+# TODO: replay states recorded in a given log file
 def replay_states(log_file, object_id):
     cid = p.connect(p.SHARED_MEMORY)
     if cid < 0:
@@ -111,24 +122,78 @@ def replay_states(log_file, object_id):
     print(itemNum)
 
     for record in log:
-        pos = [record[3], record[4], record[5]]
-        orn = [record[6], record[7], record[8], record[9]]
-        numJoints = p.getNumJoints(object)
-        targetPositionsJoints = [record[29]]
-        for i in range(numJoints):
-            jointInfo = p.getJointInfo(object, i)
-            qIndex = jointInfo[3]
-            if qIndex > -1:
-                targetPositionsJoints.append(record[qIndex - 7 + 17])
+        print(record)
+        # pos = [record[3], record[4], record[5]]
+        # orn = [record[6], record[7], record[8], record[9]]
+        # numJoints = p.getNumJoints(object)
+        # targetPositionsJoints = [record[29]]
+        # for i in range(numJoints):
+        #     jointInfo = p.getJointInfo(object, i)
+        #     qIndex = jointInfo[3]
+        #     if qIndex > -1:
+        #         targetPositionsJoints.append(record[qIndex - 7 + 17])
+        #
+        # p.setJointMotorControlArray(object,
+        #                             range(numJoints),
+        #                             p.POSITION_CONTROL,
+        #                             targetPositions=targetPositionsJoints)
+        #
+        # p.stepSimulation()
+        # time.sleep(1. / 20.)
 
-        print(targetPositionsJoints)
-        p.setJointMotorControlArray(object,
-                                    range(numJoints),
-                                    p.POSITION_CONTROL,
-                                    targetPositions=targetPositionsJoints)
 
+def log_states(filename, object_id):
+    cid = p.connect(p.SHARED_MEMORY)
+    if cid < 0:
+        p.connect(p.GUI)
+    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
+    p.resetSimulation()
+    p.loadURDF("plane.urdf")
+
+    offset_x, offset_y = 0, 0
+    urdf_path, rotation, offset_z = loader.fetch_mobility_object(object_id)
+    object = p.loadURDF(
+        urdf_path,
+        basePosition=[offset_x, offset_y, offset_z],
+        baseOrientation=p.getQuaternionFromEuler(rotation),
+        useFixedBase=True
+    )
+
+    p.setGravity(0, 0, -9.81)
+    p.setRealTimeSimulation(0)
+
+    numJoints = p.getNumJoints(object)
+    for i in range(numJoints):
+        p.enableJointForceTorqueSensor(object, i, enableSensor=True)
+
+    records = []
+    # log records in 100 frames
+    for timestamp in range(100):
         p.stepSimulation()
-        time.sleep(1. / 20.)
+        for i in range(numJoints):
+            records.append([timestamp, i, p.getJointState(object, i)])
+        time.sleep(1. / 10.)
+
+    dump2file(filename, records)
+    p.disconnect()
+
+
+def dump2file(filename, record):
+    f = open(filename, 'w')
+    f.write('[timestamp], (jointIndex), position, velocity, fx, fy, fz, mx, my, mz, appliedJointMotorTorque\n')
+    for timestamp, jointIndex, data in record:
+        f.write("[" + str(timestamp) + "], (" + str(jointIndex) + "), ")
+        for i in range(len(data)):
+            if i == 2:
+                for ele in data[i]:
+                    f.write(str(ele) + ", ")
+            elif i == len(data) - 1:
+                f.write(str(data[i]) + "\n")
+            else:
+                f.write(str(data[i]) + ", ")
+
+    f.close()
 
 
 if __name__ == "__main__":
