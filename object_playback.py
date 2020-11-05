@@ -45,17 +45,22 @@ def replay_states(log_file, object_id):
     print('item num:'),
     print(itemNum)
 
-    for record in log[1:]:
-        jointIndex = int(record[1])
-        position, velocity, force = float(record[2]), float(record[3]), float(record[-1])
-        p.setJointMotorControl2(object,
-                                jointIndex,
-                                p.VELOCITY_CONTROL,
-                                targetPosition=position,
-                                targetVelocity=velocity,
-                                force=force)
+    numJoints = p.getNumJoints(object)
+    pointer = 1
+    while pointer < recordNum:
+        for jointIndex in range(numJoints):
+            record = log[pointer + jointIndex]
+            print(pointer)
+            position, velocity, force = float(record[2]), float(record[3]), float(record[-1])
+            p.setJointMotorControl2(object,
+                                    jointIndex,
+                                    p.VELOCITY_CONTROL,
+                                    targetPosition=position,
+                                    targetVelocity=velocity,
+                                    force=force)
         p.stepSimulation()
         time.sleep(1. / 20.)
+        pointer += numJoints
 
 
 def log_states(filename, object_id):
