@@ -5,7 +5,7 @@ import time
 import struct
 import os
 import csv
-
+import numpy as np
 
 def readLogFile(log_file):
     log = []
@@ -50,16 +50,16 @@ def replay_states(log_file, object_id):
     while pointer < recordNum:
         for jointIndex in range(numJoints):
             record = log[pointer + jointIndex]
-            print(pointer)
-            position, velocity, force = float(record[2]), float(record[3]), float(record[-1])
+            position, velocity, joint_motor_torque = float(record[2]), float(record[3]), float(record[10])
             p.setJointMotorControl2(object,
                                     jointIndex,
-                                    p.VELOCITY_CONTROL,
+                                    p.TORQUE_CONTROL,
                                     targetPosition=position,
                                     targetVelocity=velocity,
-                                    force=force)
+                                    force=joint_motor_torque*10)  # increase the force proportionally
+        # apply forces on link? need the position on the link to apply force
         p.stepSimulation()
-        time.sleep(1. / 20.)
+        time.sleep(1. / 10.)
         pointer += numJoints
 
 
@@ -93,7 +93,7 @@ def log_states(filename, object_id):
     for timestamp in range(100):
         p.stepSimulation()
         for i in range(numJoints):
-            records.append([timestamp, i, p.getJointState(object, i)])
+            records.append([timestamp, i, p.getJointState(object, i) + p.getLinkState(object, i)[0]])
         time.sleep(1. / 10.)
 
     dump2file(filename, records)
@@ -102,7 +102,7 @@ def log_states(filename, object_id):
 
 def dump2file(filename, record):
     f = open(filename, 'w')
-    f.write('[timestamp], jointIndex, position, velocity, fx, fy, fz, mx, my, mz, appliedJointMotorTorque\n')
+    f.write('[timestamp], jointIndex, position, velocity, fx, fy, fz, mx, my, mz, appliedJointMotorTorque, lx, ly, lz\n')
     for timestamp, jointIndex, data in record:
         f.write("[" + str(timestamp) + "], " + str(jointIndex) + ", ")
         for i in range(len(data)):
