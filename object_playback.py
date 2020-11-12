@@ -56,7 +56,7 @@ def replay_states(log_file, object_id):
                                     p.TORQUE_CONTROL,
                                     targetPosition=position,
                                     targetVelocity=velocity,
-                                    force=joint_motor_torque*10)  # increase the force proportionally
+                                    force=-joint_motor_torque*10)  # increase the force proportionally
         # apply forces on link? need the position on the link to apply force
         p.stepSimulation()
         time.sleep(1. / 10.)
