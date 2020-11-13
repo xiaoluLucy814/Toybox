@@ -93,7 +93,7 @@ def log_states(filename, object_id):
     for timestamp in range(100):
         p.stepSimulation()
         for i in range(numJoints):
-            records.append([timestamp, i, p.getJointState(object, i) + p.getLinkState(object, i)[0]])
+            records.append([timestamp, i, p.getJointState(object, i)])
         time.sleep(1. / 10.)
 
     dump2file(filename, records)
@@ -102,7 +102,7 @@ def log_states(filename, object_id):
 
 def dump2file(filename, record):
     f = open(filename, 'w')
-    f.write('[timestamp], jointIndex, position, velocity, fx, fy, fz, mx, my, mz, appliedJointMotorTorque, lx, ly, lz\n')
+    f.write('[timestamp], jointIndex, position, velocity, fx, fy, fz, mx, my, mz, appliedJointMotorTorque\n')
     for timestamp, jointIndex, data in record:
         f.write("[" + str(timestamp) + "], " + str(jointIndex) + ", ")
         for i in range(len(data)):
