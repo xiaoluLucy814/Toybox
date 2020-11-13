@@ -16,6 +16,13 @@ def readLogFile(log_file):
 
 
 def replay_states(log_file, object_id):
+    """
+    Reads states from log file and replays the interactions
+
+    :param log_file: Path to the log file
+    :param object_id (str): id of the object in the sapien dataset
+    :return: None
+    """
     cid = p.connect(p.SHARED_MEMORY)
     if cid < 0:
         p.connect(p.GUI)
@@ -64,6 +71,13 @@ def replay_states(log_file, object_id):
 
 
 def log_states(filename, object_id):
+    """
+    Records manual interactions and write to a log file
+
+    :param filename: Path to the output file
+    :param object_id (str): id of the object in the sapien dataset
+    :return: None
+    """
     cid = p.connect(p.SHARED_MEMORY)
     if cid < 0:
         p.connect(p.GUI)
@@ -101,6 +115,13 @@ def log_states(filename, object_id):
 
 
 def dump2file(filename, record):
+    """
+    Writes to a log file
+
+    :param filename: Path to the output file
+    :param record: States recorded during simulation
+    :return: None
+    """
     f = open(filename, 'w')
     f.write('[timestamp], jointIndex, position, velocity, fx, fy, fz, mx, my, mz, appliedJointMotorTorque\n')
     for timestamp, jointIndex, data in record:
@@ -118,6 +139,8 @@ def dump2file(filename, record):
 
 
 if __name__ == "__main__":
+    # If a log file exists for the given object, load the file and replay states
+    # If a log file does not exist, log manual interactions
     object_id = '100968'
     log_file = os.path.join("log", "{}.TXT".format(object_id))
     if os.path.exists(log_file):
@@ -126,79 +149,3 @@ if __name__ == "__main__":
     else:
         print("LOGGING STATES")
         log_states(log_file, object_id)
-
-
-'''
-# function to read and parse a given log file
-def readLogFile(filename, verbose=True):
-    f = open(filename, 'rb')
-
-    print('Opened'),
-    print(filename)
-
-    keys = f.readline().decode('utf8').rstrip('\n').split(',')
-    fmt = f.readline().decode('utf8').rstrip('\n')
-
-    # The byte number of one record
-    sz = struct.calcsize(fmt)
-    # The type number of one record
-    ncols = len(fmt)
-
-    if verbose:
-        print('Keys:'),
-        print(keys)
-        print('Format:'),
-        print(fmt)
-        print('Size:'),
-        print(sz)
-        print('Columns:'),
-        print(ncols)
-
-    # Read data
-    wholeFile = f.read()
-    # split by alignment word
-    chunks = wholeFile.split(b'\xaa\xbb')
-    log = list()
-    for chunk in chunks:
-        if len(chunk) == sz:
-            values = struct.unpack(fmt, chunk)
-            record = list()
-            for i in range(ncols):
-                record.append(values[i])
-            log.append(record)
-
-    return log
-
-
-# write state records into a log file
-def log_states(log_file, object_id):
-    cid = p.connect(p.SHARED_MEMORY)
-    if cid < 0:
-        p.connect(p.GUI)
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
-
-    p.resetSimulation()
-    p.loadURDF("plane.urdf")
-
-    offset_x, offset_y = 0, 0
-    urdf_path, rotation, offset_z = loader.fetch_mobility_object(object_id)
-    object = p.loadURDF(
-        urdf_path,
-        basePosition=[offset_x, offset_y, offset_z],
-        baseOrientation=p.getQuaternionFromEuler(rotation),
-        useFixedBase=True
-    )
-
-    p.setGravity(0, 0, -9.81)
-    p.setRealTimeSimulation(0)
-
-    logId = p.startStateLogging(p.STATE_LOGGING_GENERIC_ROBOT, log_file, [object])
-
-    # Record logging for 100 frames
-    for _ in range(100):
-        p.stepSimulation()
-        time.sleep(1. / 10.)
-
-    p.stopStateLogging(logId)
-    p.disconnect()
-'''
